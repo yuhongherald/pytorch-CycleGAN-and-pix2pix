@@ -11,7 +11,7 @@ class HTML:
      It is based on Python library 'dominate', a Python library for creating and manipulating HTML documents using a DOM API.
     """
 
-    def __init__(self, web_dir, title, refresh=0):
+    def __init__(self, web_dir, title):
         """Initialize the HTML classes
 
         Parameters:
@@ -28,9 +28,6 @@ class HTML:
             os.makedirs(self.img_dir)
 
         self.doc = dominate.document(title=title)
-        if refresh > 0:
-            with self.doc.head:
-                meta(http_equiv="refresh", content=str(refresh))
 
     def get_image_dir(self):
         """Return the directory that stores images"""

@@ -11,7 +11,7 @@ import numpy as np
 
 clean_dir = os.path.join("..", "clean")
 outline_dir = "outlines"
-background_dir = "background"
+background_dir = "cut" #"background"
 threshold_dir = "threshold"
 threshold = 0.01
 size = 64
