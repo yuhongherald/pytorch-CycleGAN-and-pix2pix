@@ -15,7 +15,7 @@ class Identity(nn.Module):
         return x
 
 
-def get_norm_layer(norm_type='instance'):
+def get_norm_layer(norm_type='instance', style_dim=512):
     """Return a normalization layer
 
     Parameters:
@@ -28,6 +28,8 @@ def get_norm_layer(norm_type='instance'):
         norm_layer = functools.partial(nn.BatchNorm2d, affine=True, track_running_stats=True)
     elif norm_type == 'instance':
         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
+    #elif norm_type == 'adain':
+    #    norm_layer = functools.partial(AdaptiveInstanceNorm, style_dim=style_dim)
     elif norm_type == 'none':
         norm_layer = lambda x: Identity()
     else:
@@ -116,7 +118,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[], num_classes=0):
     """Create a generator
 
     Parameters:
@@ -144,18 +146,18 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     The generator has been initialized by <init_net>. It uses RELU for non-linearity.
     """
     net = None
-    norm_layer = get_norm_layer(norm_type=norm)
+    norm_layer = functools.partial(AdaptiveInstanceNorm, style_dim= 8 * ngf + num_classes) #get_norm_layer(norm_type=norm)
 
     if netG == 'resnet_9blocks':
         net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
     elif netG == 'resnet_6blocks':
         net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
     elif netG == 'unet_64':
-        net = UnetGenerator(input_nc, output_nc, 6, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 6, ngf, norm_layer=norm_layer, use_dropout=use_dropout, num_classes=num_classes)
     elif netG == 'unet_128':
-        net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout, num_classes=num_classes)
     elif netG == 'unet_256':
-        net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout, num_classes=num_classes)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % netG)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -438,7 +440,7 @@ class ResnetBlock(nn.Module):
 class UnetGenerator(nn.Module):
     """Create a Unet-based generator"""
 
-    def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
+    def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, num_classes=0):
         """Construct a Unet generator
         Parameters:
             input_nc (int)  -- the number of channels in input images
@@ -453,19 +455,67 @@ class UnetGenerator(nn.Module):
         """
         super(UnetGenerator, self).__init__()
         # construct unet structure
-        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
+        latent_size = num_classes + ngf * 8
+        latent_block = LatentBlock(latent_size)
+        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=latent_block, norm_layer=norm_layer, innermost=True, passThrough=True, latent_size=latent_size)  # add the innermost layer
         for i in range(num_downs - 5):          # add intermediate layers with ngf * 8 filters
-            unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
+            if i < 1:
+                unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, passThrough=True, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout, latent_size=latent_size)
+            else:
+                unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout, latent_size=latent_size)
         # gradually reduce the number of filters from ngf * 8 to ngf
-        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
+        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, latent_size=latent_size)
+        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer, latent_size=latent_size)
+        unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer, latent_size=latent_size)
+        self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer, latent_size=latent_size)  # add the outermost layer
 
-    def forward(self, input):
+    def forward(self, input, class_vector=0):
         """Standard forward"""
-        return self.model(input)
+        return self.model(input, class_vector)
 
+class LatentBlock(nn.Module):
+    """Takes a vector and a class variable and outputs a latent vector through 2 xxx layers.
+    """
+    def __init__(self, latent_size):
+        super().__init__()
+
+        self.linear1 = nn.Linear(latent_size, latent_size)
+        self.linear2 = nn.Linear(latent_size, latent_size)
+        self.ReLU = nn.LeakyReLU(0.2, True)
+        pass
+    def forward(self, x, class_vector):
+        latent = torch.cat(class_vector, torch.squeeze(torch.squeeze(x, 2), 2), 1)
+        latent = self.ReLU(self.linear2(self.ReLU(self.linear1(latent))))
+        return latent, x
+
+class NoiseInjection(nn.Module):
+    def __init__(self, channel):
+        super().__init__()
+
+        self.weight = nn.Parameter(torch.zeros(1, channel, 1, 1))
+
+    def forward(self, image, noise):
+        return image + self.weight * noise
+
+class AdaptiveInstanceNorm(nn.Module):
+    def __init__(self, in_channel, style_dim):
+        super().__init__()
+
+        self.norm = nn.InstanceNorm2d(in_channel)
+        self.style = nn.Linear(style_dim, in_channel * 2)
+        self.style.weight.data.normal_()
+
+        self.style.bias.data[:in_channel] = 1
+        self.style.bias.data[in_channel:] = 0
+
+    def forward(self, input, style):
+        style = self.style(style).unsqueeze(2).unsqueeze(3)
+        gamma, beta = style.chunk(2, 1)
+
+        out = self.norm(input)
+        out = gamma * out + beta
+
+        return out
 
 class UnetSkipConnectionBlock(nn.Module):
     """Defines the Unet submodule with skip connection.
@@ -473,8 +523,8 @@ class UnetSkipConnectionBlock(nn.Module):
         |-- downsampling -- |submodule| -- upsampling --|
     """
 
-    def __init__(self, outer_nc, inner_nc, input_nc=None,
-                 submodule=None, outermost=False, innermost=False, norm_layer=nn.BatchNorm2d, use_dropout=False):
+    def __init__(self, outer_nc, inner_nc, latent_size=0, input_nc=None,
+                 submodule=None, outermost=False, innermost=False, passThrough=False, norm_layer=nn.BatchNorm2d, use_dropout=False):
         """Construct a Unet submodule with skip connections.
 
         Parameters:
@@ -489,7 +539,9 @@ class UnetSkipConnectionBlock(nn.Module):
         """
         super(UnetSkipConnectionBlock, self).__init__()
         self.outermost = outermost
-        if type(norm_layer) == functools.partial:
+        if True:
+            use_bias = True
+        elif type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
@@ -508,14 +560,14 @@ class UnetSkipConnectionBlock(nn.Module):
                                         padding=1)
             down = [downconv]
             up = [uprelu, upconv, nn.Tanh()]
-            model = down + [submodule] + up
+            #model = down + [submodule] + up
         elif innermost:
             upconv = nn.ConvTranspose2d(inner_nc, outer_nc,
                                         kernel_size=4, stride=2,
                                         padding=1, bias=use_bias)
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
-            model = down + up
+            #model = down + up
         else:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
                                         kernel_size=4, stride=2,
@@ -524,17 +576,41 @@ class UnetSkipConnectionBlock(nn.Module):
             up = [uprelu, upconv, upnorm]
 
             if use_dropout:
-                model = down + [submodule] + up + [nn.Dropout(0.5)]
+                up = up + [nn.Dropout(0.5)]
+                #model = down + [submodule] + up + [nn.Dropout(0.5)]
             else:
-                model = down + [submodule] + up
+                #model = down + [submodule] + up
+                pass
 
-        self.model = nn.Sequential(*model)
+        #self.model = nn.Sequential(*model)
+        self.down = nn.Sequential(*down)
+        self.up = nn.Sequential(*up)
+        self.submodule = submodule
+        self.fc = nn.Linear(latent_size, 2 * inner_nc, bias=True)
+        self.norm = nn.InstanceNorm2d(inner_nc)
 
-    def forward(self, x):
+    def forward(self, x, class_vector):
+        latent, result = self.submodule(self.down(x), class_vector)
         if self.outermost:
-            return self.model(x)
-        else:   # add skip connections
-            return torch.cat([x, self.model(x)], 1)
+            # apply latent here?
+            return self.up(result)
+        #else if self.innermost:
+        #    # construct latent vector here
+        #    return latent, torch.cat([x, self.up(latent)], 1)
+        elif self.passThrough:   # add skip connections
+            return latent, torch.cat([x, self.up(result)], 1)
+        else:
+            # apply latent here
+            c_all_vector = self.fc(latent)
+            c_1_vector, c_2_vector = c_all_vector.chunk(2, 1)
+            new_result = c_1_vector * self.norm(latent) + c_2_vector
+            return latent, torch.cat([x, self.up(new_result)], 1)
+
+    #def forward(self, x):
+    #    if self.outermost:
+    #        return self.model(x)
+    #    else:   # add skip connections
+    #        return torch.cat([x, self.model(x)], 1)
 
 
 class NLayerDiscriminator(nn.Module):

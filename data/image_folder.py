@@ -22,6 +22,7 @@ def is_image_file(filename):
 
 def make_dataset(dir, max_dataset_size=float("inf")):
     images = []
+    base_names = []
     assert os.path.isdir(dir), '%s is not a valid directory' % dir
 
     for root, _, fnames in sorted(os.walk(dir)):
@@ -29,7 +30,11 @@ def make_dataset(dir, max_dataset_size=float("inf")):
             if is_image_file(fname):
                 path = os.path.join(root, fname)
                 images.append(path)
-    return images[:min(max_dataset_size, len(images))]
+                #worry later
+                base_name, file_extension = os.path.splitext(fname)
+                base_name.split("____", 1)[0] + file_extension
+                base_names.append(fname)
+    return images[:min(max_dataset_size, len(images))], base_names[:min(max_dataset_size, len(base_names))]
 
 
 def default_loader(path):
