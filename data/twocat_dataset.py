@@ -5,6 +5,7 @@ from PIL import Image
 import random
 import csv
 import torch
+import numpy as np
 
 class TwocatDataset(BaseDataset):
     """
@@ -48,10 +49,11 @@ class TwocatDataset(BaseDataset):
         'perching': 4,
         'walking': 5
         }
-        input_file = csv.DictReader(open(self.dir_class))
-        self.class_dict = {}
-        for row in input_file:
-            self.class_dict[row['filename'].lower()] = class_to_int[row['class'].lower()]
+        with open(self.dir_class) as file:
+            input_file = csv.DictReader(open(file))
+            self.class_dict = {}
+            for row in input_file:
+                self.class_dict[row['filename'].lower()] = class_to_int[row['class'].lower()]
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -83,7 +85,11 @@ class TwocatDataset(BaseDataset):
         B_img = Image.open(B_path).convert('RGB')
         class_variable = torch.zeros([self.num_classes], dtype=torch.float32)
 
-        class_index = self.class_dict[self.base_name[index].lower()]
+        class_index = self.class_dict.get(self.base_name[index].lower(), 4)
+        random_class = np.random.randint(5)
+        if random_class >= class_index:
+            random_class += 1
+        class_index = random_class
         #print(class_index)
         class_variable[class_index] = 1
         #randomA_img = Image.open(randomA_path).convert('RGB')
