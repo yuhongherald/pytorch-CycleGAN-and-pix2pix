@@ -28,7 +28,7 @@ class TwocatDataset(BaseDataset):
         self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')  # create a path '/path/to/data/trainB'
         self.dir_class = os.path.join(opt.dataroot, opt.class_csv)
 
-        self.A_paths = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
+        self.A_paths, _ = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
         self.B_paths, self.base_name = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
 
         self.A_size = len(self.A_paths)  # get the size of dataset A
@@ -45,14 +45,13 @@ class TwocatDataset(BaseDataset):
         'closeup': 1,
         'flying': 2,
         'interacting': 3,
-        'interacting': 4,
-        'perching': 5,
-        'walking': 6
+        'perching': 4,
+        'walking': 5
         }
         input_file = csv.DictReader(open(self.dir_class))
         self.class_dict = {}
         for row in input_file:
-            self.class_dict[row['filename']] = class_to_int[row['class']]
+            self.class_dict[row['filename'].lower()] = class_to_int[row['class'].lower()]
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -82,11 +81,11 @@ class TwocatDataset(BaseDataset):
         #randomB_path = self.B_paths[indexRandomB]
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
-        class_variable = torch.zeros([1, self.num_classes], dtype=torch.float32)
+        class_variable = torch.zeros([self.num_classes], dtype=torch.float32)
 
-        class_index = self.class_dict[self.base_name[index]]
+        class_index = self.class_dict[self.base_name[index].lower()]
         #print(class_index)
-        class_variable[:, class_index] = 1
+        class_variable[class_index] = 1
         #randomA_img = Image.open(randomA_path).convert('RGB')
         #randomB_img = Image.open(randomB_path).convert('RGB')
         # apply image transformation
