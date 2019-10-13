@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from .base_model import BaseModel
 from . import networks
 
@@ -84,9 +85,17 @@ class Pix2PixModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
+        self.noise_inputs = []
+        batch_size = self.real_A.size()[0]
+        for length in self.netG.module.noise_length:
+            #print(batch_size)
+            z = (np.random.rand(batch_size, length).astype(np.float32) - 0.5) / 0.5
+            z = torch.autograd.Variable(torch.from_numpy(z), requires_grad=False).to(self.device)
+            self.noise_inputs.append(z)
+
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        self.fake_B = self.netG(self.real_A, self.class_variable)  # G(A)
+        self.fake_B = self.netG(self.real_A, self.class_variable, self.noise_inputs)  # G(A)
 
     def backward_D(self):
         """Calculate GAN loss for the discriminator"""

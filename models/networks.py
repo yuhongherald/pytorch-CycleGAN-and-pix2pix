@@ -460,6 +460,10 @@ class UnetGenerator(nn.Module):
         layers = 0
         adain = get_norm_layer('adain', style_dim=latent_size)
 
+        self.noise_length = [ngf * 2 * 2 ** min(i, 3) for i in range(num_downs - 1)] + [ngf * 8]
+        self.noise_length.reverse()
+
+
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=latent_block, norm_layer=norm_layer, innermost=True, passThrough=True, latent_size=latent_size)  # add the innermost layer
         for i in range(num_downs - 5):          # add intermediate layers with ngf * 8 filters
             layers += 1
@@ -473,9 +477,9 @@ class UnetGenerator(nn.Module):
         unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer, latent_size=latent_size)
         self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer, latent_size=latent_size)  # add the outermost layer
 
-    def forward(self, input, class_vector=0):
+    def forward(self, input, class_vector=[], noise_inputs=[]):
         """Standard forward"""
-        return self.model(input, class_vector)
+        return self.model(input, class_vector, noise_inputs)
 
 class LatentBlock(nn.Module):
     """Takes a vector and a class variable and outputs a latent vector through 2 xxx layers.
@@ -486,8 +490,9 @@ class LatentBlock(nn.Module):
         self.linear1 = nn.Linear(latent_size, latent_size)
         self.linear2 = nn.Linear(latent_size, latent_size)
         self.ReLU = nn.LeakyReLU(0.2, True)
-        pass
-    def forward(self, x, class_vector):
+        self.position = -1
+
+    def forward(self, x, class_vector, noise_inputs):
         latent = torch.cat([class_vector, x.mean(-1).mean(-1)], 1)
         latent = self.ReLU(self.linear2(self.ReLU(self.linear1(latent))))
         return latent, x
@@ -499,7 +504,7 @@ class NoiseInjection(nn.Module):
         self.weight = nn.Parameter(torch.zeros(1, channel, 1, 1))
 
     def forward(self, image, noise):
-        return image + self.weight * noise
+        return image + self.weight * noise.unsqueeze(2).unsqueeze(3)
 
 class AdaptiveInstanceNorm(nn.Module):
     def __init__(self, in_channel, style_dim):
@@ -544,6 +549,9 @@ class UnetSkipConnectionBlock(nn.Module):
         super(UnetSkipConnectionBlock, self).__init__()
         self.passThrough = passThrough
         self.outermost = outermost
+        self.position = submodule.position + 1
+        self.add_noise = NoiseInjection(inner_nc if innermost else inner_nc * 2)
+        
         if not passThrough:
             self.adain = adain(inner_nc * 2)
         #if True:
@@ -597,22 +605,22 @@ class UnetSkipConnectionBlock(nn.Module):
         #self.fc = nn.Sequential(nn.Linear(latent_size, 4 * inner_nc, bias=True), nn.LeakyReLU(0.2, True))
         #self.norm = nn.InstanceNorm2d(inner_nc)
 
-    def forward(self, x, class_vector):
-        latent, result = self.submodule(self.down(x), class_vector)
+    def forward(self, x, class_vector, noise_inputs):
+        latent, result = self.submodule(self.down(x), class_vector, noise_inputs)
         if self.outermost:
             # apply latent here?
-            return self.up(result)
+            return self.up(self.add_noise(result, noise_inputs[self.position]))
         #else if self.innermost:
         #    # construct latent vector here
         #    return latent, torch.cat([x, self.up(latent)], 1)
         elif self.passThrough:   # add skip connections
-            return latent, torch.cat([x, self.upnorm(self.up(result))], 1)
+            return latent, torch.cat([x, self.upnorm(self.up(self.add_noise(result, noise_inputs[self.position])))], 1)
         else:
             # apply latent here
             #c_all_vector = torch.unsqueeze(torch.unsqueeze(self.fc(latent), 2), 3)
             #c_1_vector, c_2_vector = c_all_vector.chunk(2, 1)
             #new_result = c_1_vector * self.adain(result, latent) + c_2_vector
-            return latent, torch.cat([x, self.up(self.adain(result, latent))], 1)
+            return latent, torch.cat([x, self.up(self.adain(self.add_noise(result, noise_inputs[self.position]), latent))], 1)
 
     #def forward(self, x):
     #    if self.outermost:

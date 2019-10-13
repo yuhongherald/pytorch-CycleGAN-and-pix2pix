@@ -49,11 +49,27 @@ class TwocatDataset(BaseDataset):
         'perching': 4,
         'walking': 5
         }
+
+        self.background_set = set()
+        self.class_dict = {}
+
+        suffix = ['-b','']
         with open(self.dir_class) as file:
-            input_file = csv.DictReader(open(file))
-            self.class_dict = {}
+            input_file = csv.DictReader(file)
             for row in input_file:
-                self.class_dict[row['filename'].lower()] = class_to_int[row['class'].lower()]
+                filename_var, ext = os.path.splitext(row['filename'].lower())
+                class_var = row['class'].lower()
+                for i in range(2):
+                    final_name = filename_var + suffix[i] + ext
+                    self.class_dict[final_name] = class_to_int[class_var]
+                    if i == 0:
+                        self.background_set.add(final_name)
+                    for j in range(32):
+                        final_name = filename_var + suffix[i] + str(j) + ext
+                        self.class_dict[final_name] = class_to_int[class_var]
+                        if i == 0:
+                            self.background_set.add(final_name)
+                            #print(final_name)
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -85,13 +101,22 @@ class TwocatDataset(BaseDataset):
         B_img = Image.open(B_path).convert('RGB')
         class_variable = torch.zeros([self.num_classes], dtype=torch.float32)
 
-        class_index = self.class_dict.get(self.base_name[index].lower(), 4)
-        random_class = np.random.randint(5)
-        if random_class >= class_index:
-            random_class += 1
-        class_index = random_class
+        filename = self.base_name[index].lower()
+
+        class_index = self.class_dict.get(filename) #, 4
+        #TODO: Fix class_index is None: look at csv
+        #random_class = np.random.randint(5)
+        #if random_class >= class_index:
+        #    random_class += 1
+        #class_index = random_class
         #print(class_index)
+        
         class_variable[class_index] = 1
+
+        if filename in self.background_set:
+            class_variable[self.num_classes - 1] = 1
+        else:
+            class_variable[self.num_classes - 1] = -1
         #randomA_img = Image.open(randomA_path).convert('RGB')
         #randomB_img = Image.open(randomB_path).convert('RGB')
         # apply image transformation
