@@ -1,0 +1,6 @@
+climbing: Using beak or perching on vertical surface
+closeup: can't see some features, or weird
+flying: wings spread
+interacting: in a weird position, beak close to something
+perching: standing vertically
+walking: horizontal body, on flat surface

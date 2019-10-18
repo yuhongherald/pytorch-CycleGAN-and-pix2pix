@@ -1,6 +1,5 @@
 .DS_Store
 debug*
-datasets/
 checkpoints/
 results/
 build/
@@ -45,3 +44,8 @@ test/data/legacy_serialized.pt
 *.jpg
 *.png
 *.jpeg
+datasets/birds_augmented
+*.pytorch
+*.pb
+datasets/birds/xception_model/model.ckpt.index
+datasets/birds/xception_model/model.ckpt.data-00000-of-00001
