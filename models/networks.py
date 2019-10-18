@@ -36,6 +36,22 @@ def get_norm_layer(norm_type='instance', style_dim=512):
         raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
     return norm_layer
 
+def getUpsample(in_c, out_c, k_size, stride, padding, use_bias, upsample_mode='upsample', upsample_method='nearest', output_padding=0):
+    if upsample_mode == 'upsample':
+        return [nn.Upsample(scale_factor=stride, mode=upsample_method),
+                nn.Conv2d(in_c, out_c,
+                    kernel_size=3, stride=1,
+                    padding=1, bias=use_bias)]
+    elif upsample_mode == 'subpixel':
+        return [nn.Conv2d(in_c, out_c * (stride ** 2),
+                    kernel_size=3, stride=1,
+                    padding=1, bias=use_bias),
+                    nn.PixelShuffle(stride)
+                ]
+    else:
+        return [nn.ConvTranspose2d(in_c, out_c,
+                    kernel_size=k_size, stride=stride,
+                    padding=padding, output_padding=output_padding, bias=use_bias)]
 
 def get_scheduler(optimizer, opt):
     """Return a learning rate scheduler
@@ -571,25 +587,31 @@ class UnetSkipConnectionBlock(nn.Module):
         self.upnorm = norm_layer(outer_nc)
 
         if outermost:
-            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
-                                        kernel_size=4, stride=2,
-                                        padding=1)
+            upconv = getUpsample(inner_nc * 2, outer_nc,
+                                        4, 2, 1, False)
+            #upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
+            #                            kernel_size=4, stride=2,
+            #                            padding=1)
             down = [downconv]
-            up = [uprelu, upconv, nn.Tanh()]
+            up = [uprelu] + upconv + [nn.Tanh()]
             #model = down + [submodule] + up
         elif innermost:
-            upconv = nn.ConvTranspose2d(inner_nc, outer_nc,
-                                        kernel_size=4, stride=2,
-                                        padding=1, bias=use_bias)
+            upconv = getUpsample(inner_nc, outer_nc,
+                                        4, 2, 1, use_bias)
+            #upconv = nn.ConvTranspose2d(inner_nc, outer_nc,
+            #                            kernel_size=4, stride=2,
+            #                            padding=1, bias=use_bias)
             down = [downrelu, downconv]
-            up = [uprelu, upconv]
+            up = [uprelu] + upconv
             #model = down + up
         else:
-            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
-                                        kernel_size=4, stride=2,
-                                        padding=1, bias=use_bias)
+            upconv = getUpsample(inner_nc * 2, outer_nc,
+                                        4, 2, 1, use_bias)
+            #upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
+            #                            kernel_size=4, stride=2,
+            #                            padding=1, bias=use_bias)
             down = [downrelu, downconv, downnorm]
-            up = [uprelu, upconv]
+            up = [uprelu] + upconv
 
             if use_dropout:
                 up = up + [nn.Dropout(0.5)]

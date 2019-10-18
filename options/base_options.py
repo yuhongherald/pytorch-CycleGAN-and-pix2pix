@@ -56,7 +56,7 @@ class BaseOptions():
         parser.add_argument('--suffix', default='', type=str, help='customized suffix: opt.name = opt.name + suffix: e.g., {model}_{netG}_size{load_size}')
         
         parser.add_argument('--num_classes', type=int, help='Number of classes')
-        parser.add_argument('--class_csv', type=str, help='csv file containing image classes')
+        parser.add_argument('--class_csv', type=str, default='None', help='csv file containing image classes')
         #parser.add_argument('--normG', type=str, default='adain', help='instance normalization or batch normalization [adain]')        
         self.initialized = True
         return parser

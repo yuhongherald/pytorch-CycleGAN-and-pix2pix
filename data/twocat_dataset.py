@@ -53,6 +53,9 @@ class TwocatDataset(BaseDataset):
         self.background_set = set()
         self.class_dict = {}
 
+        if opt.class_csv == 'None':
+            return
+
         suffix = ['-b','']
         with open(self.dir_class) as file:
             input_file = csv.DictReader(file)
@@ -61,15 +64,37 @@ class TwocatDataset(BaseDataset):
                 class_var = row['class'].lower()
                 for i in range(2):
                     final_name = filename_var + suffix[i] + ext
-                    self.class_dict[final_name] = class_to_int[class_var]
                     if i == 0:
-                        self.background_set.add(final_name)
+                        edited_name = filename_var + suffix[i] + '.png'
+                        self.background_set.add(edited_name)
+                        self.class_dict[edited_name] = class_to_int[class_var]
+                        #print(final_name)
+                    self.class_dict[final_name] = class_to_int[class_var]
+                        
                     for j in range(32):
                         final_name = filename_var + suffix[i] + str(j) + ext
                         self.class_dict[final_name] = class_to_int[class_var]
                         if i == 0:
                             self.background_set.add(final_name)
                             #print(final_name)
+        count = 0
+        for name in self.base_name:
+            filename = name.lower()
+            class_index = self.class_dict.get(filename)
+            if class_index is None:
+                count = count + 1
+                #print(filename)
+                filename_var, ext = os.path.splitext(filename)
+                filename_var = filename_var[:-2]
+                final_name = filename_var + '-b' + ext
+
+                self.class_dict[filename] = self.class_dict[filename_var + ext]
+                self.background_set.add(filename)
+                #print(final_name)
+                class_index = self.class_dict.get(filename)
+                if class_index is None:
+                    print("ERROR")
+        print(count)
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -103,7 +128,7 @@ class TwocatDataset(BaseDataset):
 
         filename = self.base_name[index].lower()
 
-        class_index = self.class_dict.get(filename) #, 4
+        class_index = self.class_dict.get(filename, 4) #, 4
         #TODO: Fix class_index is None: look at csv
         #random_class = np.random.randint(5)
         #if random_class >= class_index:
