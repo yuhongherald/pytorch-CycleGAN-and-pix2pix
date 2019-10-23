@@ -32,7 +32,33 @@ from data import create_dataset
 from models import create_model
 from util.visualizer import save_images
 from util import html
+from data.base_dataset import BaseDataset, get_transform
 
+def pollForFiles(name_set):
+    input("Press Enter to generate new drawings") #for now do local trigger
+    dir_A = os.path.join(opt.dataroot, opt.phase + 'A')  # create a path '/path/to/data/trainA' #edges
+    files = sorted(make_dataset(self.dir_A, opt.max_dataset_size/2))   # load images from '/path/to/data/trainA'
+    for A_paths, base_name in files:
+        if base_name in name_set:
+            continue
+        name_set.add(base_name)
+        #read image file, apply transform
+        #get image class
+        #create a dictionary
+    return 
+
+def batchProcess(opt, model, dataset, webpage):
+    for i, data in enumerate(dataset):
+        if i >= opt.num_test:  # only apply our model to opt.num_test images.
+            break
+        model.set_input(data)  # unpack data from data loader
+        model.test()           # run inference
+        visuals = model.get_current_visuals()  # get image results
+        img_path = model.get_image_paths()     # get image paths
+        if i % 5 == 0:  # save images to an HTML file
+            print('processing (%04d)-th image... %s' % (i, img_path))
+        save_images(webpage, visuals, img_path, name_set, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+    webpage.save()  # save the HTML
 
 if __name__ == '__main__':
     opt = TestOptions().parse()  # get test options
@@ -53,14 +79,11 @@ if __name__ == '__main__':
     # For [CycleGAN]: It should not affect CycleGAN as CycleGAN uses instancenorm without dropout.
     if opt.eval:
         model.eval()
-    for i, data in enumerate(dataset):
-        if i >= opt.num_test:  # only apply our model to opt.num_test images.
-            break
-        model.set_input(data)  # unpack data from data loader
-        model.test()           # run inference
-        visuals = model.get_current_visuals()  # get image results
-        img_path = model.get_image_paths()     # get image paths
-        if i % 5 == 0:  # save images to an HTML file
-            print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
-    webpage.save()  # save the HTML
+
+    name_set = set()
+
+    if opt.test:
+        # include a method for creating single data entries
+
+    else:
+        batchProcess(opt, model, dataset, webpage)

@@ -25,29 +25,15 @@ class TwocatDataset(BaseDataset):
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
         BaseDataset.__init__(self, opt)
-        self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')  # create a path '/path/to/data/trainA' #edges
-        self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')  # create a path '/path/to/data/trainB' #images
+        self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')  # create a path '/path/to/data/trainA'
+        self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')  # create a path '/path/to/data/trainB'
         self.dir_class = os.path.join(opt.dataroot, opt.class_csv)
 
-        self.A_paths, self.base_name = sorted(make_dataset(self.dir_A, opt.max_dataset_size/2))   # load images from '/path/to/data/trainA'
-        self.B_paths = self.A_paths
-        self.C_paths = self.A_paths
-
-        if not opt.test:
-            self.B_paths, _ = sorted(make_dataset(self.dir_B, opt.max_dataset_size/2))    # load images from '/path/to/data/trainB'
-            self.C_paths, _ = sorted(make_dataset(self.dir_C, opt.max_dataset_size/2))   # load images from '/path/to/data/trainC'
-
-        self.A_size_original = len(self.A_paths)  # get the size of dataset A
-
-        self.test_mode = opt.test_mode
-        if opt.test_mode != 'photo' and opt.test_mode != 'binary':
-            self.dir_C = os.path.join(opt.dataroot, opt.phase + 'C')  #binarized
-            self.A_paths = self.A_paths + self.C_paths
-            self.B_paths = self.B_paths + self.B_paths
+        self.A_paths, _ = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
+        self.B_paths, self.base_name = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
 
         self.A_size = len(self.A_paths)  # get the size of dataset A
         self.B_size = len(self.B_paths)  # get the size of dataset B
-
         btoA = self.opt.direction == 'BtoA'
         input_nc = self.opt.output_nc if btoA else self.opt.input_nc       # get the number of channels of input image
         output_nc = self.opt.input_nc if btoA else self.opt.output_nc      # get the number of channels of output image
@@ -108,9 +94,7 @@ class TwocatDataset(BaseDataset):
                 class_index = self.class_dict.get(filename)
                 if class_index is None:
                     print("ERROR")
-        if count != 0:
-            print(count)
-        self.base_name = self.base_name + self.base_name
+        print(count)
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -145,7 +129,7 @@ class TwocatDataset(BaseDataset):
         filename = self.base_name[index].lower()
 
         class_index = self.class_dict.get(filename, 4) #, 4
-
+        #TODO: Fix class_index is None: look at csv
         #random_class = np.random.randint(5)
         #if random_class >= class_index:
         #    random_class += 1
@@ -153,25 +137,20 @@ class TwocatDataset(BaseDataset):
         #print(class_index)
 
         #TURNED OFF
-        class_variable[class_index] = 1
-        if filename in self.background_set:
-            class_variable[self.num_classes - 2] = 1
-        else:
-            class_variable[self.num_classes - 2] = -1
-
-        if self.test_mode == 'photo':
-            class_variable[self.num_classes - 1] = 1
-        elif self.test_mode == 'binary':
-            class_variable[self.num_classes - 1] = -1
-        elif index < self.A_size_original:
-            class_variable[self.num_classes - 1] = 1
-        else:
-            class_variable[self.num_classes - 1] = -1
+        #class_variable[class_index] = 1
+        #if filename in self.background_set:
+        #    class_variable[self.num_classes - 1] = 1
+        #else:
+        #    class_variable[self.num_classes - 1] = -1
         #TURNED OFF
         
+        #randomA_img = Image.open(randomA_path).convert('RGB')
+        #randomB_img = Image.open(randomB_path).convert('RGB')
         # apply image transformation
         A = self.transform_A(A_img)
         B = self.transform_B(B_img)
+        #randomA = self.transform_A(randomA_img)
+        #randomB = self.transform_B(randomB_img)
 
         return {'A': A, 'B': B, 'A_paths': A_path, 'B_paths': B_path, 'class_variable': class_variable}
 

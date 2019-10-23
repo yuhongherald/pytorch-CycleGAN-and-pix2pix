@@ -108,29 +108,36 @@ def stretch_compress(images):
 		results.append(result)
 	return results
 
-input = sys.argv[1]
-edges = sys.argv[2]
-output1 = sys.argv[3]
-output2 = sys.argv[4]
-for directory_name in ["train"]:#os.listdir(input):
-	sub_dir1 = os.path.join(input, directory_name)
-	sub_dir2 = os.path.join(edges, directory_name)
+input_p = 'images' #sys.argv[1]
+edges_p = 'edges' #sys.argv[2]
+binarized_p = 'binarized'
+output1 = 'images_augmented'#sys.argv[3]
+output2 = 'edges_augmented'#sys.argv[4]
+output3 = 'binarized_augmented'#sys.argv[5]
+for directory_name in os.listdir(input):
+	sub_dir1 = os.path.join(input_p, directory_name)
+	sub_dir2 = os.path.join(edges_p, directory_name)
+	sub_dir3 = os.path.join(binarized_p, directory_name)
 	if not os.path.isdir(sub_dir1):
 		continue
 	new_sub_dir1 = os.path.join(output1, directory_name)
 	new_sub_dir2 = os.path.join(output2, directory_name)
+	new_sub_dir3 = os.path.join(output3, directory_name)
 	if not os.path.exists(new_sub_dir1):
 		os.mkdir(new_sub_dir1)
 	if not os.path.exists(new_sub_dir2):
 		os.mkdir(new_sub_dir2)
+	if not os.path.exists(new_sub_dir3):
+		os.mkdir(new_sub_dir3)
 	for image_name in os.listdir(sub_dir1):
 		if image_name[-4:].lower() != '.jpg' and image_name[-4:].lower() != '.png':
 			continue
 		image = cv2.imread(os.path.join(sub_dir1, image_name), -1)
 		edges = cv2.imread(os.path.join(sub_dir2, image_name[:-4] + '.jpg'), -1)
+		binarized = cv2.imread(os.path.join(sub_dir3, image_name[:-4] + '.jpg'), -1)
 		for i in range(32):
-			results = stretch_compress(affine([image, edges], [128, 0]))
-            suffix = '____' + str(i).zfill(2)
+			results = stretch_compress(affine([image, edges, binarized], [128, 0, 0]))
 			cv2.imwrite(os.path.join(new_sub_dir1, image_name[:-4] + str(i) + '.jpg'), results[0])
 			cv2.imwrite(os.path.join(new_sub_dir2, image_name[:-4] + str(i) + '.jpg'), results[1])
+			cv2.imwrite(os.path.join(new_sub_dir3, image_name[:-4] + str(i) + '.jpg'), results[2])
 
