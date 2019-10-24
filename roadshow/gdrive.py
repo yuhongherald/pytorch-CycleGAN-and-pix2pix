@@ -5,7 +5,6 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import io
-import gdrive
 from googleapiclient.http import MediaIoBaseDownload
 import time
 from string import ascii_uppercase
@@ -15,9 +14,9 @@ class gdrive:
         self,
         credential_file='credentials.json',
         SCOPES=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-        download_dir = 'datasets/roadshow/raw',
+        download_dir = 'datasets/roadshow/download',
         input_dir = 'datasets/roadshow/testA',
-        output_dir = 'results/roadshow/test_latest'):
+        output_dir = 'datasets/roadshow/results'):
 
         self.sleepTime = 1
         self.credential_file = credential_file
@@ -29,6 +28,7 @@ class gdrive:
         self.creds = self.getCreds()
         self.drive = self.getDrive()
         self.sheets = self.getSheets()
+        print('gdrive init')
 
     def getCreds(self):
         creds = None
@@ -103,6 +103,9 @@ class gdrive:
             for item in items:
                 print(u'{0} ({1})'.format(item['name'], item['id']))
 
+    def upload(filename):
+        pass
+
     def download(self, file_id):
         while True:
             try:
@@ -132,10 +135,10 @@ class gdrive:
             while page_token is not None:
                 response = self.drive.changes().list(pageToken=page_token,
                                                         spaces='drive').execute()
-                for change in (change for change in response.get('changes') if change.get('fileId') == file_id):
-                    print('new form content')
-                    download(change.get('fileId'))
-                    name = change.get('name')
+                for x in response.get('changes'):
+                    if x.get('fileId') == file_id:
+                        print('new form content')
+                        return True
                 if 'newStartPageToken' in response:
                     # Last page, save this token for the next polling interval
                     start_page_token = response.get('newStartPageToken')

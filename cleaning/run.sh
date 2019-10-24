@@ -2,6 +2,10 @@
 #python extract.py
 #python resize.py
 
+python test2.py --dataroot ./datasets/roadshow --name edge2birds_roadshow --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 8 --class_csv class.csv --num_test 9999 --test --test_mode binary
+
+
+
 python train.py --dataroot ./datasets/birds --name edge2birds_augmented_binarized --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --save_latest_freq 34555 --save_epoch_freq 3 --display_id 0 --niter 42 --niter_decay 0 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --print_freq 1000 --update_html_freq 1000 --num_classes 8 --class_csv class.csv
 
 python test.py --dataroot ./datasets/birds --name edge2birds_augmented_binarized --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 8 --class_csv class.csv --num_test 9999
