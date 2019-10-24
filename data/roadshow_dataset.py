@@ -7,7 +7,7 @@ import csv
 import torch
 import numpy as np
 
-class TwocatDataset(BaseDataset):
+class RoadshowDataset(BaseDataset):
     """
     This dataset class can load unaligned/unpaired datasets.
 
@@ -67,6 +67,7 @@ class TwocatDataset(BaseDataset):
                     if i == 0:
                         edited_name = filename_var + suffix[i] + '.png'
                         self.background_set.add(edited_name)
+                        #DO SOMETHING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                         self.class_dict[edited_name] = class_to_int[class_var]
                         #print(final_name)
                     self.class_dict[final_name] = class_to_int[class_var]

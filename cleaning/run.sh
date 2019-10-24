@@ -2,7 +2,7 @@
 #python extract.py
 #python resize.py
 
-python test2.py --dataroot ./datasets/roadshow --name edge2birds_roadshow --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 8 --class_csv class.csv --num_test 9999 --test --test_mode binary
+python test2.py --dataroot ./datasets/roadshow --name edge2birds_roadshow --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode roadshow --num_classes 8 --class_csv class.csv --num_test 9999 --test --test_mode binary
 
 
 
