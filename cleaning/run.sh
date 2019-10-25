@@ -2,13 +2,28 @@
 #python extract.py
 #python resize.py
 
+copy test\edge2birds_augmented_binarized\images\*fake_B* test\edge2birds_augmented_binarized\fake
+copy test\edge2birds_augmented_classless\images\*fake_B* test\edge2birds_augmented_classless\fake
+copy test\edge2birds_augmented3\images\*fake_B* test\edge2birds_augmented3\fake
+copy test\edge2birds-old-cleaner\images\*fake_B* test\edge2birds-old-cleaner\fake
+
+58.38807873062547
+107.76237479294205
+106.50347148870993
+311.42411651897305
+
+python fid.py --inception inception --gpu 0 --output_dir output "D:\Documents\pix2pix\datasets\birds\testB" "D:\Documents\pix2pix\datasets\birds\test\edge2birds_augmented_binarized\fake"
+python fid.py --inception inception --gpu 0 --output_dir output "D:\Documents\pix2pix\datasets\birds\testB" "D:\Documents\pix2pix\datasets\birds\test\edge2birds_augmented_classless\fake"
+python fid.py --inception inception --gpu 0 --output_dir output "D:\Documents\pix2pix\datasets\birds\testB" "D:\Documents\pix2pix\datasets\birds\test\edge2birds_augmented3\fake"
+python fid.py --inception inception --gpu 0 --output_dir output "D:\Documents\pix2pix\datasets\birds\testB" "D:\Documents\pix2pix\datasets\birds\test\edge2birds-old-cleaner\fake"
+
 python test2.py --dataroot ./datasets/roadshow --name edge2birds_roadshow --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode roadshow --num_classes 8 --class_csv class.csv --num_test 9999
 
 
 
 python train.py --dataroot ./datasets/birds --name edge2birds_augmented_binarized --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --save_latest_freq 34555 --save_epoch_freq 3 --display_id 0 --niter 42 --niter_decay 0 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --print_freq 1000 --update_html_freq 1000 --num_classes 8 --class_csv class.csv
 
-python test.py --dataroot ./datasets/birds --name edge2birds_augmented_binarized --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 8 --class_csv class.csv --num_test 9999
+python test.py --dataroot ./datasets/birds_drawn --name edge2birds_augmented_binarized --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 8 --class_csv class.csv --num_test 9999
 
 python test.py --dataroot ./datasets/birds_blue --name edge2birds_augmented_binarized --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 8 --class_csv class.csv --num_test 9999
 
@@ -17,12 +32,12 @@ python test.py --dataroot ./datasets/birds_drawn --name edge2birds_augmented_bin
 
 python train.py --dataroot ./datasets/birds_augmented --name edge2birds_augmented_classless --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --save_latest_freq 36843 --save_epoch_freq 3 --display_id 0 --niter 42 --niter_decay 0 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --print_freq 1000 --update_html_freq 1000 --num_classes 7 --class_csv class.csv
 
-python test.py --dataroot ./datasets/birds_augmented --name edge2birds_augmented_classless --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 7 --class_csv class.csv --num_test 9999
+python test.py --dataroot ./datasets/birds_drawn --name edge2birds_augmented_classless --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 7 --class_csv class.csv --num_test 9999
 
 
 python train.py --dataroot ./datasets/birds_augmented --name edge2birds_augmented3 --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --save_latest_freq 36843 --save_epoch_freq 3 --display_id 0 --niter 42 --niter_decay 0 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --print_freq 1000 --update_html_freq 1000 --num_classes 7 --class_csv class.csv
 
-python test.py --dataroot ./datasets/birds_augmented --name edge2birds_augmented3 --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 7 --class_csv class.csv --num_test 9999
+python test.py --dataroot ./datasets/birds_drawn --name edge2birds_augmented3 --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode twocat --num_classes 7 --class_csv class.csv --num_test 9999
 
 python train.py --dataroot ./datasets/birds_augmented --name edge2birds_augmented2 --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --save_latest_freq 36843 --save_epoch_freq 3 --display_id 0 --niter 42 --niter_decay 0 --batch_size 8 --input_nc 1 --output_nc 3 --dataset_mode twocat --print_freq 1000 --update_html_freq 1000 --num_classes 7 --class_csv class.csv --continue_train --epoch_count 8
 
@@ -55,4 +70,4 @@ python train.py --dataroot ./datasets/birds --name edge2birds --model pix2pix --
 
 # Epoch 79
 python train.py --dataroot ./datasets/birds --name edge2birds --model pix2pix --direction BtoA --preprocess resize --load_size 64 --crop_size 64 --no_flip --netG unet_64 --netD n_layers --n_layers_D 2 --save_latest_freq 1654 --save_epoch_freq 20 --display_id 0 --niter 200 --niter_decay 0 --batch_size 16 --continue_train --epoch_count 79
-python test.py --dataroot ./datasets/birds --name edge2birds-oldmodel --model pix2pix --direction BtoA --preprocess resize --load_size 64 --crop_size 64 --no_flip --netG unet_64 --netD n_layers --n_layers_D 2
+python test.py --dataroot ./datasets/birds_drawn --name edge2birds-old-cleaner --model pix2pix --direction AtoB --preprocess resize --load_size 64 --crop_size 64 --no_flip --netG unet_64 --netD n_layers --n_layers_D 2 --dataset_mode twocat
