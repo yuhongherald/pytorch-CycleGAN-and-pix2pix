@@ -52,3 +52,4 @@ datasets/birds/xception_model/model.ckpt.data-00000-of-00001
 model.zip
 credentials.json
 token.pickle
+*.gif
