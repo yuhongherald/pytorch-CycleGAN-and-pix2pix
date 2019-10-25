@@ -10,11 +10,25 @@ class online_test:
     def __init__(self):
         self.drive = gdrive('credentials.json')
         self.parser = image_parser()
-        self.file_id='1Ubi4-MJflgn5J_5erkd7sZLNJxFwk93aZtSruOEWBUo'
+        self.file_id = '1Ubi4-MJflgn5J_5erkd7sZLNJxFwk93aZtSruOEWBUo'
+        self.folder_id = '1grNv4nf5PbfdNb9NphMTGv9nme4R6Feq'
         self.ranges='Sheet!' #1:2 first 2 rows
-        self.current_row = 2
+        self.current_row = 2 #todo: make persistent
         self.num_columns = 6
         self.headers = ['Timestamp', 'Photo', 'class', 'name', 'Background', 'Image']
+        self.csv_path = os.path.join('datasets', 'roadshow', 'class.csv')
+
+        try:
+            if os.path.isfile(self.csv_path):
+                os.unlink(self.csv_path)
+            #elif os.path.isdir(file_path): shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
+
+        if not os.path.isfile(self.csv_path):
+            with open(self.csv_path, 'w') as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow(['filename', 'class', 'background', 'edge'])
 
     def toEdges(self, image, type):
         if type == 'Photo':
@@ -48,23 +62,43 @@ class online_test:
         square[int((y-height)/2):int(y-(y-height)/2), int((x-width)/2):int(x-(x-width)/2)] = base_img
         return square
 
+    def clear(self, folder):
+        for the_file in os.listdir(folder):
+            file_path = os.path.join(folder, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                #elif os.path.isdir(file_path): shutil.rmtree(file_path)
+            except Exception as e:
+                print(e)
+
     def pollImages(self):
-        #self.drive.poll(self.file_id)
-        current_row, data = self.drive.getData(self.file_id, self.current_row, self.num_columns)
-        with open(os.path.join('datasets', 'roadshow', 'class.csv'), 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow(['filename', 'class', 'background', 'edge'])
-            for row in data:
-                id = row[5].split('id=', 1)[1]
-                print(id)
-                filename = self.drive.download(id) #customize with name later
-                image = cv2.imread('datasets/roadshow/download' + '/' + filename)
-                edges = self.resize(self.toEdges(image, row[1]), 0)
-                resized_image = self.resize(image, 255)
-                cv2.imwrite('datasets/roadshow/testA' + '/' + filename, edges)
-                cv2.imwrite('datasets/roadshow/testB' + '/' + filename, resized_image)
-                # write entry in csv file
-                writer.writerow([filename, row[3], row[4], row[1]])
+        #empty directory first
+        self.clear('datasets/roadshow/testA')
+        self.clear('datasets/roadshow/testB')
+        data = []
+        while len(data) == 0:
+            self.drive.poll(self.file_id)
+            self.current_row, data = self.drive.getData(self.file_id, self.current_row, self.num_columns)
+            with open(self.csv_path, 'a') as csv_file:
+                writer = csv.writer(csv_file)
+                for row in data:
+                    try:
+                        id = row[5].split('id=', 1)[1]
+                        filename = self.drive.download(id) #customize with name later
+                        image = cv2.imread('datasets/roadshow/download' + '/' + filename)
+                        edges = self.resize(self.toEdges(image, row[1]), 0)
+                        resized_image = self.resize(image, 255)
+                        cv2.imwrite('datasets/roadshow/testA' + '/' + filename, edges)
+                        cv2.imwrite('datasets/roadshow/testB' + '/' + filename, resized_image)
+                        # write entry in csv file
+                        writer.writerow([filename, row[2], row[4], row[1]])
+                    except:
+                        print('Failed to download image: ' + row[5])
+
+    def uploadImages(self, save_paths):
+        for save_path in save_paths:
+            self.drive.upload(self.folder_id, save_path)
 
     def run(self):
         self.pollImages()
@@ -73,4 +107,6 @@ class online_test:
 if __name__ == '__main__':
     test = online_test()
     #while True:
-    test.run()
+    #test.run()
+    test.uploadImages(['./datasets/roadshow/result/163565451-b - edge 2birds.jpg'])
+    #test.drive.listFiles()

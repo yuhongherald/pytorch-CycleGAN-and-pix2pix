@@ -51,6 +51,7 @@ class RoadshowDataset(BaseDataset):
         }
 
         self.background_set = set()
+        self.edge_set = set()
         self.class_dict = {}
 
         if opt.class_csv == 'None':
@@ -60,42 +61,15 @@ class RoadshowDataset(BaseDataset):
         with open(self.dir_class) as file:
             input_file = csv.DictReader(file)
             for row in input_file:
-                filename_var, ext = os.path.splitext(row['filename'].lower())
+                filename_var = row['filename'].lower()
                 class_var = row['class'].lower()
-                for i in range(2):
-                    final_name = filename_var + suffix[i] + ext
-                    if i == 0:
-                        edited_name = filename_var + suffix[i] + '.png'
-                        self.background_set.add(edited_name)
-                        #DO SOMETHING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                        self.class_dict[edited_name] = class_to_int[class_var]
-                        #print(final_name)
-                    self.class_dict[final_name] = class_to_int[class_var]
-                        
-                    for j in range(32):
-                        final_name = filename_var + suffix[i] + str(j) + ext
-                        self.class_dict[final_name] = class_to_int[class_var]
-                        if i == 0:
-                            self.background_set.add(final_name)
-                            #print(final_name)
-        count = 0
-        for name in self.base_name:
-            filename = name.lower()
-            class_index = self.class_dict.get(filename)
-            if class_index is None:
-                count = count + 1
-                #print(filename)
-                filename_var, ext = os.path.splitext(filename)
-                filename_var = filename_var[:-2]
-                final_name = filename_var + '-b' + ext
-
-                self.class_dict[filename] = self.class_dict[filename_var + ext]
-                self.background_set.add(filename)
-                #print(final_name)
-                class_index = self.class_dict.get(filename)
-                if class_index is None:
-                    print("ERROR")
-        print(count)
+                background_var = row['background'].lower()
+                edge_var = row['edge'].lower()
+                if background_var == 'yes':
+                    self.background_set.add(filename_var)
+                if edge_var == 'Photo':
+                    self.edge_set.add(filename_var)
+                    self.class_dict[filename_var] = class_to_int[class_var]
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -110,19 +84,8 @@ class RoadshowDataset(BaseDataset):
             B_paths (str)    -- image paths
         """
         A_path = self.A_paths[index % self.A_size]  # make sure index is within then range
-        #if self.opt.serial_batches:   # make sure index is within then range
-        #    indexRandomA = index % self.A_size
-        #    indexRandomB = index % self.A_size
-        #else:
-        #    indexRandomA = random.randint(0, self.A_size - 2)
-        #    indexRandomB = random.randint(0, self.A_size - 2)
-        #if indexRandomA == index:
-        #    indexRandomA += 1
-        #if indexRandomB == index:
-        #    indexRandomB += 1
         B_path = self.B_paths[index]
-        #randomA_path = self.A_paths[indexRandomA]
-        #randomB_path = self.B_paths[indexRandomB]
+
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
         class_variable = torch.zeros([self.num_classes], dtype=torch.float32)
@@ -130,28 +93,20 @@ class RoadshowDataset(BaseDataset):
         filename = self.base_name[index].lower()
 
         class_index = self.class_dict.get(filename, 4) #, 4
-        #TODO: Fix class_index is None: look at csv
-        #random_class = np.random.randint(5)
-        #if random_class >= class_index:
-        #    random_class += 1
-        #class_index = random_class
-        #print(class_index)
 
-        #TURNED OFF
-        #class_variable[class_index] = 1
-        #if filename in self.background_set:
-        #    class_variable[self.num_classes - 1] = 1
-        #else:
-        #    class_variable[self.num_classes - 1] = -1
-        #TURNED OFF
-        
-        #randomA_img = Image.open(randomA_path).convert('RGB')
-        #randomB_img = Image.open(randomB_path).convert('RGB')
+        class_variable[class_index] = 1
+        if filename in self.background_set:
+            class_variable[self.num_classes - 2] = 1
+        else:
+            class_variable[self.num_classes - 2] = -1
+        if filename in self.edge_set: #photo, weak edges included, like testA
+            class_variable[self.num_classes - 1] = 1
+        else:
+            class_variable[self.num_classes - 1] = -1
+
         # apply image transformation
         A = self.transform_A(A_img)
         B = self.transform_B(B_img)
-        #randomA = self.transform_A(randomA_img)
-        #randomB = self.transform_B(randomB_img)
 
         return {'A': A, 'B': B, 'A_paths': A_path, 'B_paths': B_path, 'class_variable': class_variable}
 

@@ -2,7 +2,7 @@
 #python extract.py
 #python resize.py
 
-python test2.py --dataroot ./datasets/roadshow --name edge2birds_roadshow --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode roadshow --num_classes 8 --class_csv class.csv --num_test 9999 --test --test_mode binary
+python test2.py --dataroot ./datasets/roadshow --name edge2birds_roadshow --model pix2pix --no_flip --netG unet_256 --preprocess resize --load_size 256 --crop_size 256 --netD n_layers --n_layers_D 3 --batch_size 16 --input_nc 1 --output_nc 3 --dataset_mode roadshow --num_classes 8 --class_csv class.csv --num_test 9999
 
 
 
@@ -55,4 +55,4 @@ python train.py --dataroot ./datasets/birds --name edge2birds --model pix2pix --
 
 # Epoch 79
 python train.py --dataroot ./datasets/birds --name edge2birds --model pix2pix --direction BtoA --preprocess resize --load_size 64 --crop_size 64 --no_flip --netG unet_64 --netD n_layers --n_layers_D 2 --save_latest_freq 1654 --save_epoch_freq 20 --display_id 0 --niter 200 --niter_decay 0 --batch_size 16 --continue_train --epoch_count 79
-python test.py --dataroot ./datasets/birds --name edge2birds --model pix2pix --direction BtoA --preprocess resize --load_size 64 --crop_size 64 --no_flip --netG unet_64 --netD n_layers --n_layers_D 2
+python test.py --dataroot ./datasets/birds --name edge2birds-oldmodel --model pix2pix --direction BtoA --preprocess resize --load_size 64 --crop_size 64 --no_flip --netG unet_64 --netD n_layers --n_layers_D 2

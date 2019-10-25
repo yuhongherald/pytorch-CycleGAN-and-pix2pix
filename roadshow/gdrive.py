@@ -6,24 +6,27 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import io
 from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaFileUpload
 import time
 from string import ascii_uppercase
+import random
+import string
+import ntpath
+import filetype
 
 class gdrive:
     def __init__(
         self,
         credential_file='credentials.json',
         SCOPES=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-        download_dir = 'datasets/roadshow/download',
-        input_dir = 'datasets/roadshow/testA',
-        output_dir = 'datasets/roadshow/results'):
+        download_dir = 'datasets/roadshow/download'):
 
         self.sleepTime = 1
         self.credential_file = credential_file
         self.SCOPES = SCOPES
         self.LETTERS = [letter for index, letter in enumerate(ascii_uppercase, start=1)]
         self.download_dir = download_dir
-        self.output_dir = output_dir
+        self.names = set()
 
         self.creds = self.getCreds()
         self.drive = self.getDrive()
@@ -72,7 +75,6 @@ class gdrive:
         range = self.createRange(start_row, columns)
 
         result = sheet.values().get(spreadsheetId=file_id, range=range).execute().get('values', [])
-        print(result)
         return start_row + len(result), result
 
     def printSheets(self, file_id, ranges):
@@ -103,13 +105,42 @@ class gdrive:
             for item in items:
                 print(u'{0} ({1})'.format(item['name'], item['id']))
 
-    def upload(filename):
-        pass
+    def getType(self, filename):
+        kind = filetype.guess(filename)
+        if kind is None:
+            return 'image/jpeg'
+        return kind.mime
+
+    def upload(self, folder_id, save_path):
+        filename = ntpath.basename(save_path)
+        file_metadata = {'name': filename, 'parents': [folder_id]}
+        mimetype = self.getType(save_path)
+
+        media = MediaFileUpload(save_path,
+                                mimetype=mimetype)
+        file = self.drive.files().create(body=file_metadata,
+                                            media_body=media,
+                                            fields='id').execute()
+        print('Uploaded file: %s' % filename)
+
+    def randomString(self, stringLength=4):
+        """Generate a random string of fixed length """
+        letters = string.ascii_lowercase
+        return ''.join(random.choice(letters) for i in range(stringLength))
+
+    def generateName(self, filename):
+        new_name = filename
+        file, ext = os.path.splitext(filename)
+        while new_name in self.names:
+            new_name = file + self.randomString() + ext
+        self.names.add(new_name)
+        return new_name
 
     def download(self, file_id):
         while True:
             try:
                 name = self.drive.files().get(fileId=file_id).execute().get('name')
+                name = self.generateName(name)
                 request = self.drive.files().get_media(fileId=file_id)
                 downloaded = io.BytesIO()
                 downloader = MediaIoBaseDownload(downloaded, request)
@@ -120,12 +151,15 @@ class gdrive:
                 downloaded.seek(0)
                 with open(os.path.join(self.download_dir, name), 'wb') as file:
                     file.write(downloaded.read())
+                print("downloaded file: " + name)
                 return name
             except:
                 print('An error occurred while downloading file, retrying...')
                 time.sleep(self.sleepTime)
 
     def poll(self, file_id):
+        time.sleep(5)
+        return
         response = self.drive.changes().getStartPageToken().execute()
         start_page_token = response.get('startPageToken')
         print('Start token: %s' % start_page_token)
