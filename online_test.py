@@ -8,8 +8,6 @@ import numpy as np
 
 class online_test:
     def __init__(self):
-        self.drive = gdrive('credentials.json')
-        self.parser = image_parser()
         self.file_id = '1Ubi4-MJflgn5J_5erkd7sZLNJxFwk93aZtSruOEWBUo'
         self.folder_id = '1grNv4nf5PbfdNb9NphMTGv9nme4R6Feq'
         self.ranges='Sheet!' #1:2 first 2 rows
@@ -17,6 +15,15 @@ class online_test:
         self.num_columns = 6
         self.headers = ['Timestamp', 'Photo', 'class', 'name', 'Background', 'Image']
         self.csv_path = os.path.join('datasets', 'roadshow', 'class.csv')
+        self.testA_path = 'datasets/roadshow/testA'
+        self.testB_path = 'datasets/roadshow/testB'
+        self.testA_cache_path = 'datasets/roadshow/testA_cache'
+        self.testB_cache_path = 'datasets/roadshow/testB_cache'
+        self.download_path = 'datasets/roadshow/downloads'
+        self.results_path = 'datasets/roadshow/results'
+
+        self.drive = gdrive('credentials.json', download_dir = self.download_path)
+        self.parser = image_parser()
 
         try:
             if os.path.isfile(self.csv_path):
@@ -86,11 +93,13 @@ class online_test:
                     try:
                         id = row[5].split('id=', 1)[1]
                         filename = self.drive.download(id) #customize with name later
-                        image = cv2.imread('datasets/roadshow/download' + '/' + filename)
+                        image = cv2.imread(os.path.join(self.download_path, filename), cv2.IMREAD_COLOR)
                         edges = self.resize(self.toEdges(image, row[1]), 0)
                         resized_image = self.resize(image, 255)
-                        cv2.imwrite('datasets/roadshow/testA' + '/' + filename, edges)
-                        cv2.imwrite('datasets/roadshow/testB' + '/' + filename, resized_image)
+                        cv2.imwrite(os.path.join(self.testA_cache_path, filename), edges)
+                        cv2.imwrite(os.path.join(self.testB_cache_path, filename), resized_image)
+                        cv2.imwrite(os.path.join(self.testA_path, filename), edges)
+                        cv2.imwrite(os.path.join(self.testB_path, filename), resized_image)
                         # write entry in csv file
                         writer.writerow([filename, row[2], row[4], row[1]])
                     except:
